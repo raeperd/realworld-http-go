@@ -5,9 +5,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
+
+	"github.com/raeperd/realworld"
+	"github.com/raeperd/realworld/internal/inmemory"
 )
 
 func main() {
@@ -30,16 +37,28 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		return err
 	}
 
-	tick := time.Tick(time.Second)
-	var seconds uint
-	for {
-		select {
-		case <-tick:
-			seconds += 1
-			fmt.Fprintf(w, "service running for %v seconds\n", seconds)
-		case <-ctx.Done():
-			fmt.Fprintf(w, "\nservice exit after %v seconds with signal", seconds)
-			return nil
-		}
+	userService := realworld.NewUserService(
+		inmemory.NewUserRepository(),
+	)
+
+	httpServer := &http.Server{
+		Addr:    net.JoinHostPort("localhost", strconv.Itoa(int(port))),
+		Handler: newServer(userService),
 	}
+	go func() {
+		log.Printf("listening on %s\n", httpServer.Addr)
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
+		}
+	}()
+
+	// server blocks here until os.Interrput
+	<-ctx.Done()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		return err
+	}
+	return nil
 }
