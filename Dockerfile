@@ -1,9 +1,14 @@
-FROM golang:1.22-bullseye as builder
-WORKDIR /src
-COPY . /src
-RUN make build CGO_ENABLED=0 
+FROM golang:1.22-bookworm AS builder
 
-FROM scratch
-COPY --from=builder /src/cmd/app/app /bin/app
-ENTRYPOINT ["/bin/app"]
-CMD ["--port=8080"]
+ARG BUILD_NUMBER=0
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -C cmd/app -ldflags "-X main.BuildNumber=${BUILD_NUMBER}"
+
+FROM debian:bookworm-slim
+
+COPY --from=builder /src/cmd/app/app /usr/local/bin/app
+CMD ["app"]
