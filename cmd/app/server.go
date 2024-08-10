@@ -17,14 +17,14 @@ func newServer(userService realworld.UserService) http.Handler {
 func handlePostUsers(service realworld.UserService) http.Handler {
 	// TODO: handle error
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req, _ := decode[PostUserRequestBody](r)
-		user := req.User.toUser()
+		req, _ := decode(r)
+		user := req.toUser()
 		user, _ = service.CreateUser(r.Context(), user)
-		_ = encode(w, 201, user)
+		_ = encode(w, 201, newPostUserResponseBody(user))
 	})
 }
 
-func decode[T any](r *http.Request) (T, error) {
+func decode[T RequestBody](r *http.Request) (T, error) {
 	var v T
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
 		return v, fmt.Errorf("decode json: %w", err)
@@ -32,7 +32,7 @@ func decode[T any](r *http.Request) (T, error) {
 	return v, nil
 }
 
-func encode[T any](w http.ResponseWriter, status int, v T) error {
+func encode[T ResponseBody](w http.ResponseWriter, status int, v T) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -41,27 +41,45 @@ func encode[T any](w http.ResponseWriter, status int, v T) error {
 	return nil
 }
 
-// TODO: Remove this struct by implementing [json.Marshaler]
-type UserWrapper[T any] struct {
-	User T `json:"user"`
+type RequestBody interface {
+	PostUserRequestBody
+}
+
+type ResponseBody interface {
+	PostUserResponseBody
 }
 
 type PostUserRequestBody UserWrapper[PostUserRequest]
 
 type PostUserResponseBody UserWrapper[PostUserResponse]
 
+// TODO: Remove this struct by implementing [json.Marshaler]
+type UserWrapper[T any] struct {
+	User T `json:"user"`
+}
+
+func (r PostUserRequestBody) toUser() realworld.User {
+	return realworld.User{
+		Name:     r.User.Name,
+		Email:    r.User.Email,
+		Password: r.User.Password,
+	}
+}
+
+func newPostUserResponseBody(user realworld.User) PostUserResponseBody {
+	return PostUserResponseBody{User: PostUserResponse{
+		Name:  user.Name,
+		Email: user.Email,
+		Token: "",
+		Bio:   "",
+		Image: new(string)},
+	}
+}
+
 type PostUserRequest struct {
 	Name     string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-func (r PostUserRequest) toUser() realworld.User {
-	return realworld.User{
-		Name:     r.Name,
-		Email:    r.Email,
-		Password: r.Password,
-	}
 }
 
 type PostUserResponse struct {
