@@ -29,7 +29,7 @@ jobs:
         id: build
         with:
           context: .
-          build-args: BUILD_NUMBER=${{ github.run_number }}
+          build-args: BUILD_ID=${{ github.run_number }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
