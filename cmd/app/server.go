@@ -75,6 +75,24 @@ type ResponseBody interface {
 	PostUserResponseBody | HealthCheckResponse
 }
 
+type ErrorResponseBody struct {
+	Errors struct {
+		Body []string `json:"body"`
+	} `json:"errors"`
+}
+
+func NewErrorResponseBody(errors ...error) ErrorResponseBody {
+	responses := make([]string, len(errors))
+	for i, err := range errors {
+		responses[i] = err.Error()
+	}
+	return ErrorResponseBody{
+		Errors: struct {
+			Body []string `json:"body"`
+		}{responses},
+	}
+}
+
 type PostUserRequestBody UserWrapper[PostUserRequest]
 
 type PostUserResponseBody UserWrapper[PostUserResponse]
