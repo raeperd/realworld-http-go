@@ -18,7 +18,7 @@ func TestRun(t *testing.T) {
 	t.Cleanup(cancel)
 	port := getFreePort(t)
 	go func() {
-		err := run(ctx, os.Stdout, []string{"--port", port})
+		err := run(ctx, os.Stdout, []string{"realworld", "--port", port})
 		if err != nil {
 			fmt.Printf("failed to run in test %s\n", err)
 		}
