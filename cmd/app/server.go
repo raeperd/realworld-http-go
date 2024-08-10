@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/raeperd/realworld"
@@ -13,7 +15,17 @@ func newServer(userService realworld.UserService) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", handleHealthCheck())
 	mux.Handle("POST /api/users", handlePostUsers(userService))
-	return mux
+	return loggingMiddleware(mux)
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		next.ServeHTTP(w, r)
+
+		log.Printf("%s %s %s %s", r.Method, r.RemoteAddr, r.URL.Path, time.Since(start))
+	})
 }
 
 var BuildId string
