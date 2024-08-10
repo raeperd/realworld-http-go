@@ -2,7 +2,7 @@ PORT := 8080
 IMAGE := ghcr.io/raeperd/realworld-http-go
 TAG := local
 
-all: compile test lint docker
+all: build test lint docker
 
 build:
 	go build -C cmd/app 
