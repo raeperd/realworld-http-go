@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/carlmjohnson/versioninfo"
 	"github.com/raeperd/realworld"
 )
 
@@ -12,6 +13,18 @@ func newServer(userService realworld.UserService) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("POST /api/users", handlePostUsers(userService))
 	return mux
+}
+
+var BuildId string
+
+func handleHealthCheck() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = encode(w, 200, HealthCheckResponse{
+			BuildId:             BuildId,
+			LastCommitHash:      versioninfo.Revision,
+			LastCommitTimestamp: versioninfo.LastCommit.Unix(),
+		})
+	})
 }
 
 func handlePostUsers(service realworld.UserService) http.Handler {
@@ -46,7 +59,7 @@ type RequestBody interface {
 }
 
 type ResponseBody interface {
-	PostUserResponseBody
+	PostUserResponseBody | HealthCheckResponse
 }
 
 type PostUserRequestBody UserWrapper[PostUserRequest]
@@ -88,4 +101,10 @@ type PostUserResponse struct {
 	Token string  `json:"token"`
 	Bio   string  `json:"bio"`
 	Image *string `json:"image"`
+}
+
+type HealthCheckResponse struct {
+	BuildId             string
+	LastCommitHash      string
+	LastCommitTimestamp int64
 }

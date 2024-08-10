@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/carlmjohnson/requests"
@@ -24,6 +25,17 @@ func TestRun(t *testing.T) {
 	}()
 
 	address := "http://localhost:" + port
+	waitForHealthy(t, ctx, 2*time.Second, address+"/health")
+
+	t.Run("GET /health", func(t *testing.T) {
+		var res HealthCheckResponse
+		err := requests.URL(address).Path("./health").ToJSON(&res).Fetch(ctx)
+
+		assert.NoError(t, err)
+		assert.NotZero(t, res.LastCommitHash)
+		assert.NotZero(t, res.LastCommitTimestamp)
+	})
+
 	t.Run("POST /api/users", func(t *testing.T) {
 		req := PostUserRequestBody{
 			User: PostUserRequest{
@@ -54,4 +66,26 @@ func getFreePort(t *testing.T) string {
 
 	addr := listener.Addr().(*net.TCPAddr)
 	return strconv.Itoa(addr.Port)
+}
+
+func waitForHealthy(t *testing.T, ctx context.Context, timeout time.Duration, endpoint string) {
+	startTime := time.Now()
+	for {
+		err := requests.URL(endpoint).Fetch(ctx)
+		if err == nil {
+			t.Log("endpoint is ready")
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if timeout <= time.Since(startTime) {
+				t.Fatalf("timeout reached white waitForHealthy")
+				return
+			}
+			time.Sleep(250 * time.Millisecond)
+		}
+	}
 }
