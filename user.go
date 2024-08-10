@@ -2,6 +2,7 @@ package realworld
 
 import "context"
 
+// WARN: Need password hashing in production
 type User struct {
 	Name     string
 	Email    string
