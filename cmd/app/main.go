@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -52,7 +51,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	)
 
 	httpServer := &http.Server{
-		Addr:    net.JoinHostPort("localhost", strconv.Itoa(int(port))),
+		Addr:    ":" + strconv.Itoa(int(port)),
 		Handler: newServer(userService),
 	}
 	go func() {
