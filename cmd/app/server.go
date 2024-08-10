@@ -11,6 +11,7 @@ import (
 
 func newServer(userService realworld.UserService) http.Handler {
 	mux := http.NewServeMux()
+	mux.Handle("GET /health", handleHealthCheck())
 	mux.Handle("POST /api/users", handlePostUsers(userService))
 	return mux
 }
