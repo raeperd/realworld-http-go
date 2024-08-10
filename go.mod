@@ -2,6 +2,13 @@ module github.com/raeperd/realworld
 
 go 1.22.5
 
-require github.com/carlmjohnson/requests v0.24.2
+require (
+	github.com/alecthomas/assert/v2 v2.10.0
+	github.com/carlmjohnson/requests v0.24.2
+)
 
-require golang.org/x/net v0.27.0 // indirect
+require (
+	github.com/alecthomas/repr v0.4.0 // indirect
+	github.com/hexops/gotextdiff v1.0.3 // indirect
+	golang.org/x/net v0.27.0 // indirect
+)

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/alecthomas/assert/v2"
 	"github.com/carlmjohnson/requests"
 )
 
@@ -38,6 +39,9 @@ func TestRun(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		assert.Equal(t, req.User.Name, res.User.Name)
+		assert.Equal(t, req.User.Email, res.User.Email)
 	})
 }
 
