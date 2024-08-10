@@ -46,13 +46,14 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		Handler: newServer(userService),
 	}
 	go func() {
+		// TODO: Use slog
 		log.Printf("listening on %s\n", httpServer.Addr)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
 		}
 	}()
 
-	// server blocks here until os.Interrput
+	// NOTE: server blocks here until os.Interrput
 	<-ctx.Done()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
