@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/carlmjohnson/versioninfo"
 	"github.com/raeperd/realworld"
 	"github.com/raeperd/realworld/internal/inmemory"
 )
@@ -34,7 +35,15 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	fs := flag.NewFlagSet("realworld", flag.ContinueOnError)
 	fs.SetOutput(w)
 	fs.UintVar(&port, "port", 8080, "port to use in http server")
-	if err := fs.Parse(args); err != nil {
+	versioninfo.AddFlag(fs)
+	fs.Usage = func() {
+		fmt.Fprintf(w, "Usage of %s:\n", fs.Name())
+		fmt.Fprintf(w, "This is a simple program that greets a person.\n\n")
+		fmt.Fprintf(w, "Flags:\n")
+		fs.PrintDefaults()
+	}
+	err := fs.Parse(args[1:])
+	if err != nil {
 		return err
 	}
 
