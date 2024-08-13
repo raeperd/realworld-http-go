@@ -55,7 +55,7 @@ func TestRun(t *testing.T) {
 				CheckStatus(422).
 				Fetch(ctx)
 
-			assert.NoError(t, err)
+			assert.NoError(t, err, "%s in case %v", err, tc)
 		}
 
 		req := PostUserRequestBody{

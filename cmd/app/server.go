@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -41,11 +42,21 @@ func handleHealthCheck() http.Handler {
 }
 
 func handlePostUsers(service realworld.UserService) http.Handler {
-	// TODO: handle error
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req, _ := decode(r)
-		user := req.toUser()
-		user, _ = service.CreateUser(r.Context(), user)
+		req, err := decode(r)
+		if err != nil {
+			_ = encodeError(w, err)
+			return
+		}
+		if err := req.Valid(); err != nil {
+			_ = encodeError(w, err)
+			return
+		}
+		user, err := service.CreateUser(r.Context(), req.toUser())
+		if err != nil {
+			_ = encodeError(w, err)
+			return
+		}
 		_ = encode(w, 201, newPostUserResponseBody(user))
 	})
 }
@@ -53,7 +64,7 @@ func handlePostUsers(service realworld.UserService) http.Handler {
 func decode[T RequestBody](r *http.Request) (T, error) {
 	var v T
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
-		return v, fmt.Errorf("decode json: %w", err)
+		return v, fmt.Errorf("%w failed to decode json: %w", realworld.ErrBadRequest, err)
 	}
 	return v, nil
 }
@@ -67,12 +78,19 @@ func encode[T ResponseBody](w http.ResponseWriter, status int, v T) error {
 	return nil
 }
 
+func encodeError(w http.ResponseWriter, err error) error {
+	if errors, ok := err.(interface{ Unwrap() []error }); ok {
+		return encode(w, realworld.StatusFromError(err), NewErrorResponseBody(errors.Unwrap()...))
+	}
+	return encode(w, realworld.StatusFromError(err), NewErrorResponseBody(err))
+}
+
 type RequestBody interface {
 	PostUserRequestBody
 }
 
 type ResponseBody interface {
-	PostUserResponseBody | HealthCheckResponse
+	ErrorResponseBody | PostUserResponseBody | HealthCheckResponse
 }
 
 type ErrorResponseBody struct {
@@ -108,6 +126,14 @@ func (r PostUserRequestBody) toUser() realworld.User {
 		Email:    r.User.Email,
 		Password: r.User.Password,
 	}
+}
+
+func (r PostUserRequestBody) Valid() error {
+	return errors.Join(
+		realworld.ErrorIfEmpty("username", r.User.Name),
+		realworld.ErrorIfEmpty("email", r.User.Email),
+		realworld.ErrorIfEmpty("password", r.User.Password),
+	)
 }
 
 func newPostUserResponseBody(user realworld.User) PostUserResponseBody {
