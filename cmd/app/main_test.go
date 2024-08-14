@@ -75,6 +75,40 @@ func TestRun(t *testing.T) {
 
 		assert.Equal(t, req.User.Name, res.User.Name)
 		assert.Equal(t, req.User.Email, res.User.Email)
+		// TODO: Delete the user after the test
+	})
+
+	t.Run("POST /api/users/login", func(t *testing.T) {
+		badcases := []PostUserLoginRequest{
+			{Email: "", Password: "password"},
+			{Email: "user@email.com", Password: ""},
+			{Email: "", Password: ""},
+		}
+
+		for _, tc := range badcases {
+			var res ErrorResponseBody
+			err := requests.URL(address).Path("./api/users/login").
+				BodyJSON(&PostUserLoginRequestBody{User: tc}).ToJSON(&res).
+				CheckStatus(422).Fetch(ctx)
+
+			assert.NoError(t, err, "%s in case %v", err, tc)
+		}
+
+		req := PostUserLoginRequestBody{
+			User: PostUserLoginRequest{
+				Email:    "user@email.com",
+				Password: "some-password",
+			},
+		}
+		var res PostUserResponseBody
+		err := requests.URL(address).Path("./api/users/login").
+			BodyJSON(&req).ToJSON(&res).Fetch(ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, req.User.Email, res.User.Email)
+		assert.NotZero(t, res.User.Token)
+
+		// TODO: Delete the user after the test
 	})
 }
 

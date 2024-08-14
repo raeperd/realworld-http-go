@@ -10,7 +10,10 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 const (
-	ErrBadRequest = Error("bad request")
+	ErrBadRequest         = Error("bad request")
+	ErrUserNotFound       = Error("user not found")
+	ErrPasswordNotMatched = Error("password not matched")
+	ErrInvalidToken       = Error("invalid token")
 )
 
 func ErrorIfEmpty[T comparable](name string, value T) error {
@@ -25,7 +28,10 @@ func StatusFromError(err error) int {
 	if err == nil {
 		return 200
 	}
-	if errors.Is(err, ErrBadRequest) {
+	if errors.Is(err, ErrUserNotFound) {
+		return 404
+	}
+	if errors.Is(err, ErrBadRequest) || errors.Is(err, ErrPasswordNotMatched) || errors.Is(err, ErrInvalidToken) {
 		return 422
 	}
 	return 500
