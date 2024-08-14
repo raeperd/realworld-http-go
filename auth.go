@@ -31,9 +31,8 @@ func (u UserAuthService) Login(ctx context.Context, email, password string) (Aut
 		return AuthorizedUser{}, err
 	}
 	// TODO: Add password hashing
-	// TODO: Add error type
 	if user.Password != password {
-		return AuthorizedUser{}, fmt.Errorf("invalid password")
+		return AuthorizedUser{}, fmt.Errorf("%w with email %s", ErrPasswordNotMatched, email)
 	}
 	token, err := u.jwtService.Serialize(JWTClaim{Email: email, Exp: time.Now().Add(time.Hour).Unix()})
 	if err != nil {
