@@ -16,7 +16,7 @@ type UserAuthService struct {
 	jwtService JWTService
 }
 
-type AuthorizedUser struct {
+type AuthenticatedUser struct {
 	User
 	Token string
 }
@@ -25,33 +25,32 @@ func NewUserAuthService(repo UserRepository, jwtService JWTService) UserAuthServ
 	return UserAuthService{repo: repo, jwtService: jwtService}
 }
 
-func (u UserAuthService) Login(ctx context.Context, email, password string) (AuthorizedUser, error) {
+func (u UserAuthService) Login(ctx context.Context, email, password string) (AuthenticatedUser, error) {
 	user, err := u.repo.FindUserByEmail(ctx, email)
 	if err != nil {
-		return AuthorizedUser{}, err
+		return AuthenticatedUser{}, err
 	}
 	// TODO: Add password hashing
 	if user.Password != password {
-		return AuthorizedUser{}, fmt.Errorf("%w with email %s", ErrPasswordNotMatched, email)
+		return AuthenticatedUser{}, fmt.Errorf("%w with email %s", ErrPasswordNotMatched, email)
 	}
 	token, err := u.jwtService.Serialize(JWTClaim{Email: email, Exp: time.Now().Add(time.Hour).Unix()})
 	if err != nil {
-		return AuthorizedUser{}, err
+		return AuthenticatedUser{}, err
 	}
-	return AuthorizedUser{User: user, Token: token}, nil
+	return AuthenticatedUser{User: user, Token: token}, nil
 }
 
-// TODO: Authenticate or Authorize?
-func (u UserAuthService) Authenticate(ctx context.Context, token string) (AuthorizedUser, error) {
+func (u UserAuthService) Authenticate(ctx context.Context, token string) (AuthenticatedUser, error) {
 	claim, err := u.jwtService.Deserialize(token)
 	if err != nil {
-		return AuthorizedUser{}, err
+		return AuthenticatedUser{}, err
 	}
 	user, err := u.repo.FindUserByEmail(ctx, claim.Email)
 	if err != nil {
-		return AuthorizedUser{}, err
+		return AuthenticatedUser{}, err
 	}
-	return AuthorizedUser{User: user, Token: token}, nil
+	return AuthenticatedUser{User: user, Token: token}, nil
 }
 
 type JWTSerializer interface {

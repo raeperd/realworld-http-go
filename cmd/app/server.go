@@ -180,7 +180,7 @@ func (r PostUserRequestBody) Valid() error {
 	)
 }
 
-func newPostUserResponseBody(user realworld.AuthorizedUser) PostUserResponseBody {
+func newPostUserResponseBody(user realworld.AuthenticatedUser) PostUserResponseBody {
 	return PostUserResponseBody{User: PostUserResponse{
 		Name:  user.Name,
 		Email: user.Email,
