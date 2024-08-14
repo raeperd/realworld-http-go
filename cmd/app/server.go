@@ -115,6 +115,8 @@ type PostUserRequestBody UserWrapper[PostUserRequest]
 
 type PostUserResponseBody UserWrapper[PostUserResponse]
 
+type PostUserLoginRequestBody UserWrapper[PostUserLoginRequest]
+
 // TODO: Remove this struct by implementing [json.Marshaler]
 type UserWrapper[T any] struct {
 	User T `json:"user"`
@@ -158,6 +160,11 @@ type PostUserResponse struct {
 	Token string  `json:"token"`
 	Bio   string  `json:"bio"`
 	Image *string `json:"image"`
+}
+
+type PostUserLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type HealthCheckResponse struct {
