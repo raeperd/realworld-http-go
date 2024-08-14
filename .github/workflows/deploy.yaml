@@ -1,4 +1,7 @@
-on: [push]
+on:
+  push:
+    branches:
+      - main
 
 env:
   REGISTRY_IMAGE: ghcr.io/raeperd/realworld-http-go
@@ -44,6 +47,10 @@ jobs:
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
+      - uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
 
   merge:
     runs-on: ubuntu-latest
