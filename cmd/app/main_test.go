@@ -78,6 +78,8 @@ func TestRun(t *testing.T) {
 		// TODO: Delete the user after the test
 	})
 
+	// TODO: improve token handling to test be independent
+	token := ""
 	t.Run("POST /api/users/login", func(t *testing.T) {
 		badcases := []PostUserLoginRequest{
 			{Email: "", Password: "password"},
@@ -108,13 +110,26 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, req.User.Email, res.User.Email)
 		assert.NotZero(t, res.User.Token)
 
+		token = res.User.Token
 		// TODO: Delete the user after the test
 	})
 
 	t.Run("GET /api/user", func(t *testing.T) {
-		var res ErrorResponseBody
-		err := requests.URL(address).Path("./api/user").ToJSON(&res).CheckStatus(401).Fetch(ctx)
+		err := requests.URL(address).Path("./api/user").CheckStatus(401).Fetch(ctx)
 		assert.NoError(t, err)
+
+		err = requests.URL(address).Path("./api/user").
+			Header("Authorization", "Token invalid-token").
+			CheckStatus(422).Fetch(ctx)
+		assert.NoError(t, err)
+
+		var res PostUserResponseBody
+		err = requests.URL(address).Path("./api/user").
+			Header("Authorization", "Token "+token).
+			CheckStatus(200).ToJSON(&res).Fetch(ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, token, res.User.Token)
 	})
 
 }
