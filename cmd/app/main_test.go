@@ -110,6 +110,13 @@ func TestRun(t *testing.T) {
 
 		// TODO: Delete the user after the test
 	})
+
+	t.Run("GET /api/user", func(t *testing.T) {
+		var res ErrorResponseBody
+		err := requests.URL(address).Path("./api/user").ToJSON(&res).CheckStatus(401).Fetch(ctx)
+		assert.NoError(t, err)
+	})
+
 }
 
 func getFreePort(t *testing.T) string {
