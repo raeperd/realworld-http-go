@@ -37,6 +37,27 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("POST /api/users", func(t *testing.T) {
+		badcases := []PostUserRequest{
+			{Name: "", Email: "user@email.com", Password: "password"},
+			{Name: "username", Email: "", Password: "password"},
+			{Name: "username", Email: "user@email.com", Password: ""},
+			{Name: "username", Email: "", Password: ""},
+			{Name: "", Email: "user@email.com", Password: ""},
+			{Name: "", Email: "", Password: "password"},
+			{Name: "", Email: "", Password: ""},
+		}
+
+		for _, tc := range badcases {
+			var res ErrorResponseBody
+			err := requests.URL(address).Path("./api/users").
+				BodyJSON(&PostUserRequestBody{User: tc}).
+				ToJSON(&res).
+				CheckStatus(422).
+				Fetch(ctx)
+
+			assert.NoError(t, err, "%s in case %v", err, tc)
+		}
+
 		req := PostUserRequestBody{
 			User: PostUserRequest{
 				Name:     "username",
