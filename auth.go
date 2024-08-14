@@ -41,6 +41,19 @@ func (u UserAuthService) Login(ctx context.Context, email, password string) (Aut
 	return AuthorizedUser{User: user, Token: token}, nil
 }
 
+// TODO: Authenticate or Authorize?
+func (u UserAuthService) Authenticate(ctx context.Context, token string) (AuthorizedUser, error) {
+	claim, err := u.jwtService.Deserialize(token)
+	if err != nil {
+		return AuthorizedUser{}, err
+	}
+	user, err := u.repo.FindUserByEmail(ctx, claim.Email)
+	if err != nil {
+		return AuthorizedUser{}, err
+	}
+	return AuthorizedUser{User: user, Token: token}, nil
+}
+
 type JWTSerializer interface {
 	Header() string
 	Serialize(c JWTClaim) (string, error)
@@ -86,10 +99,12 @@ func (j JWTService) Header() string {
 }
 
 func (j JWTService) Deserialize(token string) (JWTClaim, error) {
+	if token == "" {
+		return JWTClaim{}, ErrTokenNotFound
+	}
 	parts := strings.Split(token, ".")
-	// TODO: Add error for this type
 	if len(parts) != 3 {
-		return JWTClaim{}, fmt.Errorf("%w too many parts", ErrInvalidToken)
+		return JWTClaim{}, fmt.Errorf("%w invalid token with %d parts: '%s'", ErrInvalidToken, len(parts), token)
 	}
 
 	if parts[0] != j.header {

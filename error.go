@@ -13,6 +13,7 @@ const (
 	ErrBadRequest         = Error("bad request")
 	ErrUserNotFound       = Error("user not found")
 	ErrPasswordNotMatched = Error("password not matched")
+	ErrTokenNotFound      = Error("token not found")
 	ErrInvalidToken       = Error("invalid token")
 )
 
@@ -27,6 +28,9 @@ func ErrorIfEmpty[T comparable](name string, value T) error {
 func StatusFromError(err error) int {
 	if err == nil {
 		return 200
+	}
+	if errors.Is(err, ErrTokenNotFound) {
+		return 401
 	}
 	if errors.Is(err, ErrUserNotFound) {
 		return 404

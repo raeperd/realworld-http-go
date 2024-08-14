@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/carlmjohnson/versioninfo"
@@ -17,6 +18,7 @@ func newServer(userService realworld.UserService, authService realworld.UserAuth
 	mux.Handle("GET /health", handleHealthCheck())
 	mux.Handle("POST /api/users", handlePostUsers(userService, authService))
 	mux.Handle("POST /api/users/login", handlePostUsersLogin(authService))
+	mux.Handle("GET /api/user", handleGetUser(authService))
 	return loggingMiddleware(mux)
 }
 
@@ -85,6 +87,18 @@ func handlePostUsersLogin(service realworld.UserAuthService) http.Handler {
 		}
 		_ = encode(w, 200, newPostUserResponseBody(user))
 		// TODO: validate req
+	})
+}
+
+func handleGetUser(auth realworld.UserAuthService) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Token ")
+		user, err := auth.Authenticate(r.Context(), token)
+		if err != nil {
+			_ = encodeError(w, err)
+			return
+		}
+		_ = encode(w, 200, newPostUserResponseBody(user))
 	})
 }
 
