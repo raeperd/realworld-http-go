@@ -12,10 +12,11 @@ import (
 	"github.com/raeperd/realworld"
 )
 
-func newServer(userService realworld.UserService) http.Handler {
+func newServer(userService realworld.UserService, authService realworld.UserAuthService) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", handleHealthCheck())
-	mux.Handle("POST /api/users", handlePostUsers(userService))
+	mux.Handle("POST /api/users", handlePostUsers(userService, authService))
+	mux.Handle("POST /api/users/login", handlePostUsersLogin(authService))
 	return loggingMiddleware(mux)
 }
 
@@ -41,9 +42,9 @@ func handleHealthCheck() http.Handler {
 	})
 }
 
-func handlePostUsers(service realworld.UserService) http.Handler {
+func handlePostUsers(service realworld.UserService, auth realworld.UserAuthService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req, err := decode(r)
+		req, err := decode[PostUserRequestBody](r)
 		if err != nil {
 			_ = encodeError(w, err)
 			return
@@ -57,7 +58,29 @@ func handlePostUsers(service realworld.UserService) http.Handler {
 			_ = encodeError(w, err)
 			return
 		}
-		_ = encode(w, 201, newPostUserResponseBody(user))
+		authUser, err := auth.Login(r.Context(), user.Email, user.Password)
+		if err != nil {
+			_ = encodeError(w, err)
+			return
+		}
+		_ = encode(w, 201, newPostUserResponseBody(authUser))
+	})
+}
+
+func handlePostUsersLogin(service realworld.UserAuthService) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		req, err := decode[PostUserLoginRequestBody](r)
+		if err != nil {
+			_ = encodeError(w, err)
+			return
+		}
+		user, err := service.Login(r.Context(), req.User.Email, req.User.Password)
+		if err != nil {
+			_ = encodeError(w, err)
+			return
+		}
+		_ = encode(w, 200, newPostUserResponseBody(user))
+		// TODO: validate req
 	})
 }
 
@@ -86,7 +109,7 @@ func encodeError(w http.ResponseWriter, err error) error {
 }
 
 type RequestBody interface {
-	PostUserRequestBody
+	PostUserRequestBody | PostUserLoginRequestBody
 }
 
 type ResponseBody interface {
@@ -130,6 +153,7 @@ func (r PostUserRequestBody) toUser() realworld.User {
 	}
 }
 
+// TODO: Add detailed validation such as email format, password strength etc
 func (r PostUserRequestBody) Valid() error {
 	return errors.Join(
 		realworld.ErrorIfEmpty("username", r.User.Name),
@@ -138,11 +162,11 @@ func (r PostUserRequestBody) Valid() error {
 	)
 }
 
-func newPostUserResponseBody(user realworld.User) PostUserResponseBody {
+func newPostUserResponseBody(user realworld.AuthorizedUser) PostUserResponseBody {
 	return PostUserResponseBody{User: PostUserResponse{
 		Name:  user.Name,
 		Email: user.Email,
-		Token: "",
+		Token: user.Token,
 		Bio:   "",
 		Image: new(string)},
 	}

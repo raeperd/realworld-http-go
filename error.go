@@ -10,7 +10,8 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 const (
-	ErrBadRequest = Error("bad request")
+	ErrBadRequest   = Error("bad request")
+	ErrUserNotFound = Error("user not found")
 )
 
 func ErrorIfEmpty[T comparable](name string, value T) error {

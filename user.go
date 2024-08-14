@@ -16,6 +16,7 @@ func (u User) Validate() error {
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user User) (User, error)
+	FindUserByEmail(ctx context.Context, email string) (User, error)
 }
 
 type UserService struct {

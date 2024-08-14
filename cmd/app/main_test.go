@@ -79,9 +79,8 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("POST /api/users/login", func(t *testing.T) {
-		req := PostUserRequestBody{
-			User: PostUserRequest{
-				Name:     "username",
+		req := PostUserLoginRequestBody{
+			User: PostUserLoginRequest{
 				Email:    "user@email.com",
 				Password: "some-password",
 			},
@@ -91,7 +90,7 @@ func TestRun(t *testing.T) {
 			BodyJSON(&req).ToJSON(&res).Fetch(ctx)
 
 		assert.NoError(t, err)
-		assert.Equal(t, req.User.Name, res.User.Name)
+		assert.Equal(t, req.User.Email, res.User.Email)
 		assert.NotZero(t, res.User.Token)
 
 		// TODO: Delete the user after the test

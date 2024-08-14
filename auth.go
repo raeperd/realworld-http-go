@@ -1,6 +1,7 @@
 package realworld
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -9,6 +10,37 @@ import (
 	"strings"
 	"time"
 )
+
+type UserAuthService struct {
+	repo       UserRepository
+	jwtService JWTService
+}
+
+type AuthorizedUser struct {
+	User
+	Token string
+}
+
+func NewUserAuthService(repo UserRepository, jwtService JWTService) UserAuthService {
+	return UserAuthService{repo: repo, jwtService: jwtService}
+}
+
+func (u UserAuthService) Login(ctx context.Context, email, password string) (AuthorizedUser, error) {
+	user, err := u.repo.FindUserByEmail(ctx, email)
+	if err != nil {
+		return AuthorizedUser{}, err
+	}
+	// TODO: Add password hashing
+	// TODO: Add error type
+	if user.Password != password {
+		return AuthorizedUser{}, fmt.Errorf("invalid password")
+	}
+	token, err := u.jwtService.Serialize(JWTClaim{Email: email, Exp: time.Now().Add(time.Hour)})
+	if err != nil {
+		return AuthorizedUser{}, err
+	}
+	return AuthorizedUser{User: user, Token: token}, nil
+}
 
 type JWTSerializer interface {
 	Header() string

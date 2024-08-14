@@ -30,10 +30,14 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	var port uint
+	var (
+		port   uint
+		secret string
+	)
 	fs := flag.NewFlagSet("realworld", flag.ContinueOnError)
 	fs.SetOutput(w)
 	fs.UintVar(&port, "port", 8080, "port to use in http server")
+	fs.StringVar(&secret, "secret", "realworld-secret", "secret to use in JWT signing")
 	versioninfo.AddFlag(fs)
 	fs.Usage = func() {
 		fmt.Fprintf(w, "Usage of %s:\n", fs.Name())
@@ -46,13 +50,13 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		return err
 	}
 
-	userService := realworld.NewUserService(
-		inmemory.NewUserRepository(),
-	)
+	userRepository := inmemory.NewUserRepository()
+	userService := realworld.NewUserService(userRepository)
+	authService := realworld.NewUserAuthService(userRepository, realworld.NewJWTService([]byte(secret)))
 
 	httpServer := &http.Server{
 		Addr:    ":" + strconv.Itoa(int(port)),
-		Handler: newServer(userService),
+		Handler: newServer(userService, authService),
 	}
 	go func() {
 		// TODO: Use slog
