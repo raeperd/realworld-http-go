@@ -74,6 +74,10 @@ func handlePostUsersLogin(service realworld.UserAuthService) http.Handler {
 			_ = encodeError(w, err)
 			return
 		}
+		if err := req.Valid(); err != nil {
+			_ = encodeError(w, err)
+			return
+		}
 		user, err := service.Login(r.Context(), req.User.Email, req.User.Password)
 		if err != nil {
 			_ = encodeError(w, err)
@@ -170,6 +174,14 @@ func newPostUserResponseBody(user realworld.AuthorizedUser) PostUserResponseBody
 		Bio:   "",
 		Image: new(string)},
 	}
+}
+
+func (r PostUserLoginRequestBody) Valid() error {
+	return errors.Join(
+		realworld.ErrorIfEmpty("email", r.User.Email),
+		realworld.ErrorIfEmpty("password", r.User.Password),
+	)
+
 }
 
 type PostUserRequest struct {
