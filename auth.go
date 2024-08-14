@@ -1,7 +1,12 @@
 package realworld
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -15,8 +20,8 @@ type JWTDeserializer interface {
 }
 
 type JWTClaim struct {
-	Email string
-	Exp   time.Time
+	Email string    `json:"email"`
+	Exp   time.Time `json:"exp"`
 }
 
 type JWTService struct {
@@ -25,12 +30,24 @@ type JWTService struct {
 }
 
 func NewJWTService(secret []byte) JWTService {
-	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
+	header := base64.URLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
 	return JWTService{header: header, secret: secret}
 }
 
 func (j JWTService) Serialize(c JWTClaim) (string, error) {
-	return "", nil
+	claims, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+	payload := base64.URLEncoding.EncodeToString(claims)
+
+	h := hmac.New(sha256.New, j.secret)
+	if _, err := h.Write([]byte(j.header + "." + payload)); err != nil {
+		return "", err
+	}
+
+	signature := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	return j.header + "." + payload + "." + signature, nil
 }
 
 func (j JWTService) Header() string {
@@ -38,5 +55,45 @@ func (j JWTService) Header() string {
 }
 
 func (j JWTService) Deserialize(token string) (JWTClaim, error) {
-	return JWTClaim{}, nil
+	parts := strings.Split(token, ".")
+	// TODO: Add error for this type
+	if len(parts) != 3 {
+		return JWTClaim{}, fmt.Errorf("invalid token too many parts")
+	}
+
+	if parts[0] != j.header {
+		return JWTClaim{}, fmt.Errorf("invalid token header want: %s got: %s", j.header, parts[0])
+	}
+	_, err := base64.URLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return JWTClaim{}, fmt.Errorf("invalid token header")
+	}
+
+	payload, err := base64.URLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return JWTClaim{}, fmt.Errorf("invalid token payload")
+	}
+
+	signature, err := base64.URLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return JWTClaim{}, fmt.Errorf("invalid token signature")
+	}
+
+	h := hmac.New(sha256.New, j.secret)
+	if _, err := h.Write([]byte(parts[0] + "." + parts[1])); err != nil {
+		return JWTClaim{}, err
+	}
+	expectedSignature := h.Sum(nil)
+	if !hmac.Equal(signature, expectedSignature) {
+		return JWTClaim{}, fmt.Errorf("invalid token signature mismatch")
+	}
+
+	// Log the payload to inspect it
+	fmt.Printf("Decoded payload: %s\n", string(payload))
+
+	var claim JWTClaim
+	if err := json.Unmarshal(payload, &claim); err != nil {
+		return JWTClaim{}, err
+	}
+	return claim, nil
 }
