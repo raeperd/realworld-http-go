@@ -26,17 +26,16 @@ func ErrorIfEmpty[T comparable](name string, value T) error {
 }
 
 func StatusFromError(err error) int {
-	if err == nil {
+	switch {
+	case err == nil:
 		return 200
-	}
-	if errors.Is(err, ErrTokenNotFound) {
+	case errors.Is(err, ErrTokenNotFound):
 		return 401
-	}
-	if errors.Is(err, ErrUserNotFound) {
+	case errors.Is(err, ErrUserNotFound):
 		return 404
-	}
-	if errors.Is(err, ErrBadRequest) || errors.Is(err, ErrPasswordNotMatched) || errors.Is(err, ErrInvalidToken) {
+	case errors.Is(err, ErrBadRequest) || errors.Is(err, ErrPasswordNotMatched) || errors.Is(err, ErrInvalidToken):
 		return 422
+	default:
+		return 500
 	}
-	return 500
 }
