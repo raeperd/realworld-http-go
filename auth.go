@@ -35,7 +35,7 @@ func (u UserAuthService) Login(ctx context.Context, email, password string) (Aut
 	if user.Password != password {
 		return AuthorizedUser{}, fmt.Errorf("invalid password")
 	}
-	token, err := u.jwtService.Serialize(JWTClaim{Email: email, Exp: time.Now().Add(time.Hour)})
+	token, err := u.jwtService.Serialize(JWTClaim{Email: email, Exp: time.Now().Add(time.Hour).Unix()})
 	if err != nil {
 		return AuthorizedUser{}, err
 	}
@@ -52,8 +52,8 @@ type JWTDeserializer interface {
 }
 
 type JWTClaim struct {
-	Email string    `json:"email"`
-	Exp   time.Time `json:"exp"`
+	Email string `json:"email"`
+	Exp   int64  `json:"exp"`
 }
 
 type JWTService struct {

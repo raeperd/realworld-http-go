@@ -10,7 +10,7 @@ import (
 )
 
 func TestAuth(t *testing.T) {
-	claim := realworld.JWTClaim{Email: "user@email.com", Exp: time.Now()}
+	claim := realworld.JWTClaim{Email: "user@email.com", Exp: time.Now().Unix()}
 	service := realworld.NewJWTService([]byte("secret"))
 
 	token, err := service.Serialize(claim)
