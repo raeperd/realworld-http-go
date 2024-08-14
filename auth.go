@@ -89,25 +89,25 @@ func (j JWTService) Deserialize(token string) (JWTClaim, error) {
 	parts := strings.Split(token, ".")
 	// TODO: Add error for this type
 	if len(parts) != 3 {
-		return JWTClaim{}, fmt.Errorf("invalid token too many parts")
+		return JWTClaim{}, fmt.Errorf("%w too many parts", ErrInvalidToken)
 	}
 
 	if parts[0] != j.header {
-		return JWTClaim{}, fmt.Errorf("invalid token header want: %s got: %s", j.header, parts[0])
+		return JWTClaim{}, fmt.Errorf("%w header want: %s got: %s", ErrInvalidToken, j.header, parts[0])
 	}
 	_, err := base64.URLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return JWTClaim{}, fmt.Errorf("invalid token header")
+		return JWTClaim{}, fmt.Errorf("%w header", ErrInvalidToken)
 	}
 
 	payload, err := base64.URLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return JWTClaim{}, fmt.Errorf("invalid token payload")
+		return JWTClaim{}, fmt.Errorf("%w payload", ErrInvalidToken)
 	}
 
 	signature, err := base64.URLEncoding.DecodeString(parts[2])
 	if err != nil {
-		return JWTClaim{}, fmt.Errorf("invalid token signature")
+		return JWTClaim{}, fmt.Errorf("%w signature", ErrInvalidToken)
 	}
 
 	h := hmac.New(sha256.New, j.secret)
@@ -116,11 +116,8 @@ func (j JWTService) Deserialize(token string) (JWTClaim, error) {
 	}
 	expectedSignature := h.Sum(nil)
 	if !hmac.Equal(signature, expectedSignature) {
-		return JWTClaim{}, fmt.Errorf("invalid token signature mismatch")
+		return JWTClaim{}, fmt.Errorf("%w signature mismatch", ErrInvalidToken)
 	}
-
-	// Log the payload to inspect it
-	fmt.Printf("Decoded payload: %s\n", string(payload))
 
 	var claim JWTClaim
 	if err := json.Unmarshal(payload, &claim); err != nil {
