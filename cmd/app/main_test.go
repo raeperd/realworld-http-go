@@ -132,6 +132,17 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, token, res.User.Token)
 	})
 
+	t.Run("GET /api/profiles/{username}", func(t *testing.T) {
+		username := "username"
+		err := requests.URL(address).Path("./api/profiles/" + username).
+			CheckStatus(200).Fetch(ctx)
+		assert.NoError(t, err)
+
+		err = requests.URL(address).Path("./api/profiles/invalid-username").
+			CheckStatus(404).Fetch(ctx)
+		assert.NoError(t, err)
+	})
+
 }
 
 func getFreePort(t *testing.T) string {
