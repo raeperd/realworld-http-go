@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alecthomas/assert/v2"
+	"github.com/carlmjohnson/be"
 	"github.com/raeperd/realworld"
 )
 
@@ -14,15 +14,15 @@ func TestAuth(t *testing.T) {
 	service := realworld.NewJWTService([]byte("secret"))
 
 	token, err := service.Serialize(claim)
-	assert.NoError(t, err)
-	assert.NotZero(t, token)
-	assert.True(t, strings.HasPrefix(token, service.Header()), "token should start with header but got '%s'", token)
+	be.NilErr(t, err)
+	be.Nonzero(t, token)
+	be.True(t, strings.HasPrefix(token, service.Header()))
 
 	after, err := service.Deserialize(token)
-	assert.NoError(t, err)
-	assert.Equal(t, claim, after)
+	be.NilErr(t, err)
+	be.Equal(t, claim, after)
 
 	token2, err := service.Serialize(after)
-	assert.NoError(t, err)
-	assert.Equal(t, token, token2)
+	be.NilErr(t, err)
+	be.Equal(t, token, token2)
 }
