@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alecthomas/assert/v2"
+	"github.com/carlmjohnson/be"
 	"github.com/carlmjohnson/requests"
 )
 
@@ -31,9 +31,9 @@ func TestRun(t *testing.T) {
 		var res HealthCheckResponse
 		err := requests.URL(address).Path("./health").ToJSON(&res).Fetch(ctx)
 
-		assert.NoError(t, err)
-		assert.NotZero(t, res.LastCommitHash)
-		assert.NotZero(t, res.LastCommitTimestamp)
+		be.NilErr(t, err)
+		be.Nonzero(t, res.LastCommitHash)
+		be.Nonzero(t, res.LastCommitTimestamp)
 	})
 
 	t.Run("POST /api/users", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestRun(t *testing.T) {
 				CheckStatus(422).
 				Fetch(ctx)
 
-			assert.NoError(t, err, "%s in case %v", err, tc)
+			be.NilErr(t, err)
 		}
 
 		req := PostUserRequestBody{
@@ -73,8 +73,8 @@ func TestRun(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		assert.Equal(t, req.User.Name, res.User.Name)
-		assert.Equal(t, req.User.Email, res.User.Email)
+		be.Equal(t, req.User.Name, res.User.Name)
+		be.Equal(t, req.User.Email, res.User.Email)
 		// TODO: Delete the user after the test
 	})
 
@@ -93,7 +93,7 @@ func TestRun(t *testing.T) {
 				BodyJSON(&PostUserLoginRequestBody{User: tc}).ToJSON(&res).
 				CheckStatus(422).Fetch(ctx)
 
-			assert.NoError(t, err, "%s in case %v", err, tc)
+			be.NilErr(t, err)
 		}
 
 		req := PostUserLoginRequestBody{
@@ -106,9 +106,9 @@ func TestRun(t *testing.T) {
 		err := requests.URL(address).Path("./api/users/login").
 			BodyJSON(&req).ToJSON(&res).Fetch(ctx)
 
-		assert.NoError(t, err)
-		assert.Equal(t, req.User.Email, res.User.Email)
-		assert.NotZero(t, res.User.Token)
+		be.NilErr(t, err)
+		be.Equal(t, req.User.Email, res.User.Email)
+		be.Nonzero(t, res.User.Token)
 
 		token = res.User.Token
 		// TODO: Delete the user after the test
@@ -116,31 +116,31 @@ func TestRun(t *testing.T) {
 
 	t.Run("GET /api/user", func(t *testing.T) {
 		err := requests.URL(address).Path("./api/user").CheckStatus(401).Fetch(ctx)
-		assert.NoError(t, err)
+		be.NilErr(t, err)
 
 		err = requests.URL(address).Path("./api/user").
 			Header("Authorization", "Token invalid-token").
 			CheckStatus(422).Fetch(ctx)
-		assert.NoError(t, err)
+		be.NilErr(t, err)
 
 		var res PostUserResponseBody
 		err = requests.URL(address).Path("./api/user").
 			Header("Authorization", "Token "+token).
 			CheckStatus(200).ToJSON(&res).Fetch(ctx)
 
-		assert.NoError(t, err)
-		assert.Equal(t, token, res.User.Token)
+		be.NilErr(t, err)
+		be.Equal(t, token, res.User.Token)
 	})
 
 	t.Run("GET /api/profiles/{username}", func(t *testing.T) {
 		username := "username"
 		err := requests.URL(address).Path("./api/profiles/" + username).
 			CheckStatus(200).Fetch(ctx)
-		assert.NoError(t, err)
+		be.NilErr(t, err)
 
 		err = requests.URL(address).Path("./api/profiles/invalid-username").
 			CheckStatus(404).Fetch(ctx)
-		assert.NoError(t, err)
+		be.NilErr(t, err)
 	})
 
 }
