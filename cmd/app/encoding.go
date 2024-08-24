@@ -65,6 +65,15 @@ type PostUserResponseBody UserWrapper[PostUserResponse]
 
 type PostUserLoginRequestBody UserWrapper[PostUserLoginRequest]
 
+type GetProfilesResponseBody struct {
+	Profile struct {
+		Username  string  `json:"username"`
+		Bio       string  `json:"bio"`
+		Image     *string `json:"image"`
+		Following bool    `json:"following"`
+	} `json:"profile"`
+}
+
 // TODO: Remove this struct by implementing [json.Marshaler]
 type UserWrapper[T any] struct {
 	User T `json:"user"`

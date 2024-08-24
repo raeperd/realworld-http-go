@@ -26,6 +26,7 @@ func TestRun(t *testing.T) {
 
 	address := "http://localhost:" + port
 	waitForHealthy(t, ctx, 2*time.Second, address+"/health")
+	testUser, password := postTestUser(t, ctx, address)
 
 	t.Run("GET /health", func(t *testing.T) {
 		var res HealthCheckResponse
@@ -58,13 +59,11 @@ func TestRun(t *testing.T) {
 			be.NilErr(t, err)
 		}
 
-		req := PostUserRequestBody{
-			User: PostUserRequest{
-				Name:     "username",
-				Email:    "user@email.com",
-				Password: "some-password",
-			},
-		}
+		req := PostUserRequestBody{User: PostUserRequest{
+			Name:     testUser.Name,
+			Email:    testUser.Email,
+			Password: password,
+		}}
 		var res PostUserResponseBody
 		err := requests.URL(address).Path("./api/users").
 			BodyJSON(&req).ToJSON(&res).
@@ -75,11 +74,8 @@ func TestRun(t *testing.T) {
 
 		be.Equal(t, req.User.Name, res.User.Name)
 		be.Equal(t, req.User.Email, res.User.Email)
-		// TODO: Delete the user after the test
 	})
 
-	// TODO: improve token handling to test be independent
-	token := ""
 	t.Run("POST /api/users/login", func(t *testing.T) {
 		badcases := []PostUserLoginRequest{
 			{Email: "", Password: "password"},
@@ -96,12 +92,10 @@ func TestRun(t *testing.T) {
 			be.NilErr(t, err)
 		}
 
-		req := PostUserLoginRequestBody{
-			User: PostUserLoginRequest{
-				Email:    "user@email.com",
-				Password: "some-password",
-			},
-		}
+		req := PostUserLoginRequestBody{User: PostUserLoginRequest{
+			Email:    testUser.Email,
+			Password: password,
+		}}
 		var res PostUserResponseBody
 		err := requests.URL(address).Path("./api/users/login").
 			BodyJSON(&req).ToJSON(&res).Fetch(ctx)
@@ -109,9 +103,6 @@ func TestRun(t *testing.T) {
 		be.NilErr(t, err)
 		be.Equal(t, req.User.Email, res.User.Email)
 		be.Nonzero(t, res.User.Token)
-
-		token = res.User.Token
-		// TODO: Delete the user after the test
 	})
 
 	t.Run("GET /api/user", func(t *testing.T) {
@@ -125,11 +116,25 @@ func TestRun(t *testing.T) {
 
 		var res PostUserResponseBody
 		err = requests.URL(address).Path("./api/user").
-			Header("Authorization", "Token "+token).
+			Header("Authorization", "Token "+testUser.Token).
 			CheckStatus(200).ToJSON(&res).Fetch(ctx)
 
 		be.NilErr(t, err)
-		be.Equal(t, token, res.User.Token)
+		be.Equal(t, testUser.Token, res.User.Token)
+	})
+
+	t.Run("GET /api/profiles/{username}", func(t *testing.T) {
+		var errRes ErrorResponseBody
+		err := requests.URL(address).Path("./api/profiles/unknown-user").
+			CheckStatus(404).Fetch(ctx)
+		be.NilErr(t, err)
+		be.Nonzero(t, errRes.Errors)
+
+		var res GetProfilesResponseBody
+		err = requests.URL(address).Path("./api/profiles/" + testUser.Name).
+			CheckStatus(200).ToJSON(&res).Fetch(ctx)
+		be.NilErr(t, err)
+		be.Equal(t, testUser.Name, res.Profile.Username)
 	})
 
 }
@@ -165,4 +170,22 @@ func waitForHealthy(t *testing.T, ctx context.Context, timeout time.Duration, en
 			time.Sleep(250 * time.Millisecond)
 		}
 	}
+}
+
+func postTestUser(t *testing.T, ctx context.Context, address string) (PostUserResponse, string) {
+	req := PostUserRequestBody{
+		User: PostUserRequest{
+			Name:     "testuser",
+			Email:    "testuser@email.com",
+			Password: "testuser-password",
+		},
+	}
+	var res PostUserResponseBody
+	err := requests.URL(address).Path("./api/users").
+		BodyJSON(&req).ToJSON(&res).
+		Fetch(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res.User, req.User.Password
 }
