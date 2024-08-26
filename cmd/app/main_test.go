@@ -126,7 +126,7 @@ func TestRun(t *testing.T) {
 	t.Run("GET /api/profiles/{username}", func(t *testing.T) {
 		var errRes ErrorResponseBody
 		err := requests.URL(address).Path("./api/profiles/unknown-user").
-			CheckStatus(404).Fetch(ctx)
+			CheckStatus(404).ToJSON(&errRes).Fetch(ctx)
 		be.NilErr(t, err)
 		be.Nonzero(t, errRes.Errors)
 
