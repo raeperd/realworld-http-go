@@ -36,3 +36,14 @@ func (us *UserRepository) FindUserByEmail(ctx context.Context, email string) (re
 	}
 	return user, nil
 }
+
+func (us *UserRepository) FindUserByUsername(ctx context.Context, username string) (realworld.User, error) {
+	us.RLock()
+	defer us.RUnlock()
+	for _, user := range us.memory {
+		if user.Username == username {
+			return user, nil
+		}
+	}
+	return realworld.User{}, fmt.Errorf("%w with username %s", realworld.ErrUserNotFound, username)
+}

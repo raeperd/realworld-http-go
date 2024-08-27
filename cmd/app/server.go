@@ -10,12 +10,14 @@ import (
 	"github.com/raeperd/realworld"
 )
 
+// TODO: refactor this function into new file route.go
 func newServer(userService realworld.UserService, authService realworld.UserAuthService) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", handleHealthCheck())
 	mux.Handle("POST /api/users", handlePostUsers(userService, authService))
 	mux.Handle("POST /api/users/login", handlePostUsersLogin(authService))
 	mux.Handle("GET /api/user", handleGetUser(authService))
+	mux.Handle("GET /api/profiles/{username}", handleGetProfile(userService))
 	return loggingMiddleware(mux)
 }
 
@@ -96,5 +98,33 @@ func handleGetUser(auth realworld.UserAuthService) http.Handler {
 			return
 		}
 		_ = encode(w, 200, newPostUserResponseBody(user))
+	})
+}
+
+func handleGetProfile(service realworld.UserService) http.Handler {
+	type profile struct {
+		Username  string `json:"username"`
+		Bio       string `json:"bio"`
+		Image     string `json:"image"`
+		Following bool   `json:"following"`
+	}
+	type profileResponse struct {
+		Profile profile `json:"profile"`
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username := r.PathValue("username")
+		found, err := service.FindProfileByUsername(r.Context(), username)
+		if err != nil {
+			_ = encodeError(w, err)
+			return
+		}
+		_ = encode(w, 200, profileResponse{
+			Profile: profile{
+				Username:  found.Username,
+				Bio:       found.Bio,
+				Image:     found.Image,
+				Following: false,
+			},
+		})
 	})
 }
