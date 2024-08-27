@@ -4,19 +4,21 @@ import "context"
 
 // WARN: Need password hashing in production
 type User struct {
-	Name     string
+	Profile
 	Email    string
 	Password string
 }
 
-// TODO: Validate user
-func (u User) Validate() error {
-	return nil
+type Profile struct {
+	Username string
+	Bio      string
+	Image    string
 }
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user User) (User, error)
 	FindUserByEmail(ctx context.Context, email string) (User, error)
+	FindUserByUsername(ctx context.Context, username string) (User, error)
 }
 
 type UserService struct {
@@ -28,8 +30,13 @@ func NewUserService(repo UserRepository) UserService {
 }
 
 func (u UserService) CreateUser(ctx context.Context, user User) (User, error) {
-	if err := user.Validate(); err != nil {
-		return User{}, err
-	}
 	return u.repo.CreateUser(ctx, user)
+}
+
+func (u UserService) FindProfileByUsername(ctx context.Context, username string) (Profile, error) {
+	user, err := u.repo.FindUserByUsername(ctx, username)
+	if err != nil {
+		return Profile{}, err
+	}
+	return user.Profile, nil
 }

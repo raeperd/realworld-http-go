@@ -17,7 +17,7 @@ func decode[T RequestBody](r *http.Request) (T, error) {
 	return v, nil
 }
 
-func encode[T ResponseBody](w http.ResponseWriter, status int, v T) error {
+func encode[T any](w http.ResponseWriter, status int, v T) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -37,6 +37,7 @@ type RequestBody interface {
 	PostUserRequestBody | PostUserLoginRequestBody
 }
 
+// TODO: remove this and embed response inside http.Handler
 type ResponseBody interface {
 	ErrorResponseBody | PostUserResponseBody | HealthCheckResponse
 }
@@ -81,7 +82,9 @@ type UserWrapper[T any] struct {
 
 func (r PostUserRequestBody) toUser() realworld.User {
 	return realworld.User{
-		Name:     r.User.Name,
+		Profile: realworld.Profile{
+			Username: r.User.Name,
+		},
 		Email:    r.User.Email,
 		Password: r.User.Password,
 	}
@@ -98,7 +101,7 @@ func (r PostUserRequestBody) Valid() error {
 
 func newPostUserResponseBody(user realworld.AuthenticatedUser) PostUserResponseBody {
 	return PostUserResponseBody{User: PostUserResponse{
-		Name:  user.Name,
+		Name:  user.Profile.Username,
 		Email: user.Email,
 		Token: user.Token,
 		Bio:   "",
