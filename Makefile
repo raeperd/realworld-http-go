@@ -8,7 +8,7 @@ build:
 	go build -C cmd/app 
 
 test:
-	go test ./...
+	go test -race ./...
 
 lint:
 	golangci-lint run
