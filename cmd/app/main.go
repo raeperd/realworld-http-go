@@ -56,7 +56,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 
 	httpServer := &http.Server{
 		Addr:    ":" + strconv.Itoa(int(port)),
-		Handler: newServer(userService, authService),
+		Handler: newRouter(userService, authService),
 	}
 	go func() {
 		// TODO: Use slog
